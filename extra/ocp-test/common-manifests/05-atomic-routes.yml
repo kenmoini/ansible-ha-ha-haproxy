@@ -1,0 +1,34 @@
+---
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: dotnet
+  namespace: dot-net-test
+spec:
+  to:
+    kind: Service
+    name: dotnet
+    weight: 100
+  port:
+    targetPort: 5000
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Allow
+  wildcardPolicy: None
+---
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: httpd
+  namespace: httpd-test
+spec:
+  to:
+    kind: Service
+    name: httpd
+    weight: 100
+  port:
+    targetPort: 8080
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Allow
+  wildcardPolicy: None

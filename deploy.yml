@@ -1,0 +1,166 @@
+---
+# ansible-playbook -i .generated/gen_inventory deploy.yml
+- name: Configure RHEL systems to provide HAProxy and Keepalived for highly available load balancing
+  hosts: loadbalancers
+  become: true
+  vars:
+
+    cloud_server_endpoint: 192.168.70.81
+    local_server_endpoint: 192.168.42.34
+
+    lb_base_domain: mco-apps.kemo.labs
+
+    cert_bundle_path: .generated/haproxy-bundle.pem
+
+    required_packages:
+      - haproxy
+      - keepalived
+      - firewalld
+      - socat
+      - cockpit
+      - openssl
+
+    lb_ports:
+      - 80
+      - 443
+
+    fw_ports:
+      - 80/tcp
+      - 443/tcp
+      - 1936/tcp
+
+    keepalived_shared_ip: "192.168.42.37"
+    # keepalived_shared_ips:
+    #   - "192.168.1.1/24"
+
+    # DEFAULTS
+    keepalived_check_process: "haproxy"
+    keepalived_check_script_name: check_script
+    keepalived_auth_pass: "9870"
+    keepalived_shared_iface: "enp1s0"
+    keepalived_router_id: "52"
+    keepalived_priority: "51"
+    keepalived_backup_priority: "50"
+
+    keepalived_unicast_mode: false
+    keepalived_unicast_source: "192.168.42.0"
+    keepalived_unicast_peers:
+      - "192.168.42.35"
+      - "192.168.42.36"
+
+    keepalived_notification_email: root@localhost # Setting an email address will install, start and enable postfix
+    keepalived_notification_script: /etc/keepalived/email_notify.sh # Execute a custom script when state changes - NOT compatible with email notification
+    keepalived_notification_command_backup: /etc/keepalived/email_notify.sh # Execute a command when state changes to backup
+    keepalived_notification_command_master: /etc/keepalived/email_notify.sh # Execute a command when state changes to master
+    keepalived_notification_command_fault: /etc/keepalived/email_notify.sh # Execute a command when state changes to fault
+
+  tasks:
+
+    - name: Ensure the needed packages are installed
+      ansible.builtin.package:
+        name: "{{ required_packages }}"
+        state: present
+
+    - name: Ensure the firewall is running
+      ansible.builtin.service:
+        name: firewalld
+        state: started
+        enabled: true
+
+    - name: Open firewall ports
+      ansible.posix.firewalld:
+        port: "{{ item }}"
+        permanent: true
+        state: enabled
+        immediate: true
+      loop: "{{ fw_ports }}"
+
+    - name: Set SELinux Booleans
+      ansible.posix.seboolean:
+        name: "{{ item }}"
+        state: true
+        persistent: true
+      loop:
+        - nis_enabled
+        - haproxy_connect_any
+
+    - name: Make sure cockpit is running
+      ansible.builtin.service:
+        name: cockpit.socket
+        state: started
+        enabled: true
+
+    - name: Ensure the HAProxy keys directory is created
+      ansible.builtin.file:
+        path: /etc/haproxy/keys
+        state: directory
+        owner: root
+        group: root
+        mode: 0600
+
+    - name: Make the runtime directory
+      ansible.builtin.file:
+        path: /run/haproxy
+        state: directory
+        owner: root
+        group: root
+        mode: 0775
+
+    - name: Copy the HAProxy certificate bundle
+      ansible.builtin.copy:
+        src: "{{ cert_bundle_path }}"
+        dest: /etc/haproxy/keys/haproxy-bundle.pem
+        owner: root
+        group: root
+        mode: 0600
+      register: haproxy_cert_bundle
+
+    - name: Configure HAProxy
+      ansible.builtin.template:
+        src: haproxy.cfg.j2
+        dest: /etc/haproxy/haproxy.cfg
+        owner: root
+        group: root
+        mode: 0644
+      register: haproxy_config
+
+    - name: Configure Keepalived
+      ansible.builtin.template:
+        src: keepalived.cfg.j2
+        dest: /etc/keepalived/keepalived.conf
+        owner: root
+        group: root
+        mode: 0644
+      register: keepalived_config
+
+    - name: Template the check script
+      ansible.builtin.template:
+        src: check_script.sh.j2
+        dest: /etc/keepalived/check_script.sh
+        owner: root
+        group: root
+        mode: 0755
+
+    - name: Ensure the HAProxy service is running
+      ansible.builtin.service:
+        name: haproxy
+        state: started
+        enabled: true
+
+    - name: Ensure the Keepalived service is running
+      ansible.builtin.service:
+        name: keepalived
+        state: started
+        enabled: true
+
+    - name: Restart HAProxy if the configuration changed
+      when: haproxy_config.changed or haproxy_cert_bundle.changed
+      ansible.builtin.service:
+        name: haproxy
+        state: restarted
+
+    - name: Restart Keepalived if the configuration changed
+      when: keepalived_config.changed
+      ansible.builtin.service:
+        name: keepalived
+        state: restarted

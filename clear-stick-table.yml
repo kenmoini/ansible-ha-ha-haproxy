@@ -1,0 +1,18 @@
+---
+
+# ansible-playbook -i .generated/gen_inventory clear-stick-table.yml
+# while true; do (curl -sSLk https://httpd.mco-apps.kemo.labs/ | egrep -oi 'This is the ..... server') && sleep 0.5; done
+
+- name: Clears HAProxy stick-tables
+  hosts: loadbalancers
+  gather_facts: false
+  become: true
+  vars:
+    stick_table_names:
+      - https
+
+  tasks:
+    - name: Clear stick-tables
+      ansible.builtin.shell: |
+        set -o pipefail && echo "clear table {{ item }}" | socat stdio /var/run/haproxy/admin.sock
+      loop: "{{ stick_table_names }}"

@@ -1,0 +1,15 @@
+---
+- name: Generate a Password hash
+  ansible.builtin.include_tasks: generate-passwd-hash.yml
+
+- name: Template Kickstart file
+  ansible.builtin.template:
+    src: templates/extra-kickstart.cfg.j2
+    dest: "{{ template_dest }}/extra-kickstart-{{ node.name }}.cfg"
+    mode: 0644
+
+- name: Template Libvirt XML file
+  ansible.builtin.template:
+    src: templates/extra-kvm-vm.xml.j2
+    dest: "{{ template_dest }}/extra-kvm-vm-{{ node.name }}.xml"
+    mode: 0644

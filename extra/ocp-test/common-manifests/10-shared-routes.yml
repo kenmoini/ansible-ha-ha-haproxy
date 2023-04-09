@@ -1,0 +1,38 @@
+---
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: dotnet-ext-lb
+  namespace: dot-net-test
+spec:
+  # NOTICE HOW THE HOST IS SET TO THE EXTERNAL LOAD BALANCER
+  host: dotnet.mco-apps.kemo.labs
+  to:
+    kind: Service
+    name: dotnet
+    weight: 100
+  port:
+    targetPort: 5000
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Allow
+  wildcardPolicy: None
+---
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: httpd-ext-lb
+  namespace: httpd-test
+spec:
+  # NOTICE HOW THE HOST IS SET TO THE EXTERNAL LOAD BALANCER
+  host: httpd.mco-apps.kemo.labs
+  to:
+    kind: Service
+    name: httpd
+    weight: 100
+  port:
+    targetPort: 8080
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Allow
+  wildcardPolicy: None
