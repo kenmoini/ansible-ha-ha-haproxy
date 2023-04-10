@@ -45,7 +45,7 @@ listen stats
     timeout server          20s
 
 frontend http
-    bind {{ keepalived_shared_ip }}:80
+    bind *:80
     maxconn 30000
     default_backend http
 
@@ -61,7 +61,7 @@ backend http
     server      localserver {{ backup_server_endpoint }}:80 check backup
 
 frontend https
-    bind {{ keepalived_shared_ip }}:443 ssl crt /etc/haproxy/keys/haproxy-bundle.pem
+    bind *:443 ssl crt /etc/haproxy/keys/haproxy-bundle.pem
     mode http
     option forwardfor
     #option httpchk HEAD / HTTP/1.0

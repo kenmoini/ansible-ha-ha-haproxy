@@ -1,7 +1,7 @@
 ---
 
 # ansible-playbook -i .generated/gen_inventory clear-stick-table.yml
-# while true; do (curl -sSLk https://httpd.mco-apps.kemo.labs/ | egrep -oi 'This is the ..... server') && sleep 0.5; done
+# while true; do (curl -sSLk -m 2 https://httpd.mco-apps.kemo.labs/ | egrep -oi 'This is the ..... server') && sleep 0.5; done
 
 - name: Clears HAProxy stick-tables
   hosts: loadbalancers

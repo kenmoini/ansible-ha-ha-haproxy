@@ -152,26 +152,26 @@
         group: root
         mode: 0755
 
-    - name: Ensure the HAProxy service is running
-      ansible.builtin.service:
-        name: haproxy
-        state: started
-        enabled: true
-
     - name: Ensure the Keepalived service is running
       ansible.builtin.service:
         name: keepalived
         state: started
         enabled: true
 
-    - name: Restart HAProxy if the configuration changed
-      when: haproxy_config.changed or haproxy_cert_bundle.changed
+    - name: Ensure the HAProxy service is running
       ansible.builtin.service:
         name: haproxy
-        state: restarted
+        state: started
+        enabled: true
 
     - name: Restart Keepalived if the configuration changed
       when: keepalived_config.changed
       ansible.builtin.service:
         name: keepalived
+        state: restarted
+
+    - name: Restart HAProxy if the configuration changed
+      when: haproxy_config.changed or haproxy_cert_bundle.changed
+      ansible.builtin.service:
+        name: haproxy
         state: restarted
