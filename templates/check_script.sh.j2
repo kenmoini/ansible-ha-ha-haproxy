@@ -1,0 +1,11 @@
+#!/bin/sh
+
+CSV=`curl "http://{{ haproxy_stats_admin_user }}:{{ haproxy_stats_admin_pass }}@127.0.0.1:1936/haproxy?stats;csv" 2>/dev/null`
+
+num_frontends=`echo "$CSV"|grep FRONTEND|grep ,OPEN,|wc -l`
+num_backends=`echo "$CSV"|grep BACKEND|grep ,UP,|wc -l`
+
+if [ $num_frontends -lt 1 ] || [ $num_backends -lt 1 ]; then
+  echo "$num_frontends frontends, $num_backends backends, problems!"
+  exit 1
+fi

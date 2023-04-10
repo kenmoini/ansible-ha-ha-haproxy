@@ -3,7 +3,7 @@
 # sudo virt-install --initrd-inject /mnt/nfs-isos/pxe.ks.cfg --extra-args "inst.ks=file:/pxe.ks.cfg console=tty0 console=ttyS0,115200n8" --name=pxe --vcpus "sockets=1,cores=2,threads=1" --memory=4096 --os-variant="rhel9.1" --location /mnt/nfs-isos/rhel9.1-x86_64.iso --disk "size=120,path=/var/lib/libvirt/images/vm-pxe.qcow2,cache=none,format=qcow2" --network bridge=containerLANbr0,model=virtio -v --memballoon none --cpu host-passthrough --autostart --noautoconsole --virt-type kvm --features kvm_hidden=on --controller type=scsi,model=virtio-scsi --graphics vnc,listen=0.0.0.0,tlsport=-1,defaultMode='insecure' --connect="qemu:///system"
 
 #version=RHEL9
-network --hostname={{ node.name }}.{{ base_dns_domain }}
+network --hostname={{ node.name }}.{{ node_base_domain }}
 
 network --bootproto=static --device=enp1s0 --gateway={{ node.networking.gateway }} --ip={{ node.networking.ip }} --nameserver={{ node.networking.dns | join(',') }} --netmask={{ node.networking.mask }} --ipv6=auto --activate
 
@@ -14,7 +14,7 @@ timezone America/New_York --utc
 rootpw --iscrypted --allow-ssh {{ password_hash }}
 sshkey --username=root "{{- ssh_pubkey['content'] | b64decode | trim -}}"
 
-reboot
+reboot --eject
 text
 # skipx
 
@@ -54,6 +54,9 @@ curl
 haproxy
 keepalived
 libkeepalive
+socat
+s-nail
+postfix
 %end
 
 %addon com_redhat_kdump --enable --reserve-mb='auto'

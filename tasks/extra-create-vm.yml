@@ -1,20 +1,19 @@
 ---
 # - name: Create QCOW
-#   # ansible.builtin.shell: qemu-img create -f qcow2 {{ libvirt_base_iso_path | default('/var/lib/libvirt/images') }}/{{ node.name }}-{{ disk_item.name }}.qcow2 {{ disk_item.size }}G
 #   ansible.builtin.shell: qemu-img create -f qcow2 {{ libvirt_base_iso_path | default('/var/lib/libvirt/images') }}/{{ node.name }}-boot.qcow2 {{ disk_size }}G
 #   args:
 #     creates: "{{ libvirt_base_iso_path | default('/var/lib/libvirt/images') }}/{{ node.name }}-boot.qcow2"
 #     #creates: "{{ libvirt_base_iso_path | default('/var/lib/libvirt/images') }}/{{ node.name }}-{{ disk_item.name }}.qcow2"
 
-#- name: Create VM
-#  community.libvirt.virt:
-#    command: define
-#    xml: "{{ lookup('template', 'templates/extra-kvm-vm.xml.j2') }}"
+# - name: Create VM
+#   community.libvirt.virt:
+#     command: define
+#     xml: "{{ lookup('template', 'templates/extra-kvm-vm.xml.j2') }}"
 
-#- name: Boot the VM
-#  community.libvirt.virt:
-#    name: "{{ node.name }}"
-#    state: running
+# - name: Boot the VM
+#   community.libvirt.virt:
+#     name: "{{ node.name }}"
+#     state: running
 
 - name: Create the VM
   ansible.builtin.shell: |
@@ -23,5 +22,7 @@
     --network bridge={{ libvirt_bridge }},model=virtio \
     --os-variant="rhel9.1" --location {{ install_iso_path }} \
     --disk "size={{ disk_size }},path={{ libvirt_base_iso_path | default('/var/lib/libvirt/images') }}/{{ node.name }}-boot.qcow2,cache=none,format=qcow2" \
-    --initrd-inject {{ template_dest }}/extra-kickstart-{{ node.name }}.cfg --extra-args "inst.ks=file:/extra-kickstart-{{ node.name }}.cfg console=tty0 console=ttyS0,115200n8" \
-    -v --memballoon none --cpu host-passthrough --autostart --noautoconsole --virt-type kvm --features kvm_hidden=on --controller type=scsi,model=virtio-scsi --graphics vnc,listen=0.0.0.0,tlsport=-1,defaultMode='insecure'
+    --initrd-inject {{ template_dest }}/extra-kickstart-{{ node.name }}.cfg \
+    --extra-args "inst.ks=file:/extra-kickstart-{{ node.name }}.cfg console=tty0 console=ttyS0,115200n8" \
+    -v --memballoon none --cpu host-passthrough --autostart --noautoconsole --virt-type kvm \
+    --features kvm_hidden=on --controller type=scsi,model=virtio-scsi --graphics vnc,listen=0.0.0.0,tlsport=-1,defaultMode='insecure'

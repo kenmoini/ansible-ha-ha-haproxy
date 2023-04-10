@@ -5,33 +5,18 @@
   become: true
   vars:
 
-    cloud_server_endpoint: 192.168.70.81
-    local_server_endpoint: 192.168.42.34
-
-    lb_base_domain: mco-apps.kemo.labs
-
-    cert_bundle_path: .generated/haproxy-bundle.pem
-
-    required_packages:
-      - haproxy
-      - keepalived
-      - firewalld
-      - socat
-      - cockpit
-      - openssl
-
-    lb_ports:
-      - 80
-      - 443
-
-    fw_ports:
-      - 80/tcp
-      - 443/tcp
-      - 1936/tcp
+    primary_server_endpoint: 192.168.70.81
+    backup_server_endpoint: 192.168.42.34
 
     keepalived_shared_ip: "192.168.42.37"
     # keepalived_shared_ips:
     #   - "192.168.1.1/24"
+
+    cert_bundle_path: .generated/haproxy-bundle.pem
+
+    haproxy_stats_admin_user: notadmin
+    haproxy_stats_admin_pass: "securePassword"
+    haproxy_stats_path: /haproxy?stats
 
     # DEFAULTS
     keepalived_check_process: "haproxy"
@@ -54,6 +39,24 @@
     keepalived_notification_command_master: /etc/keepalived/email_notify.sh # Execute a command when state changes to master
     keepalived_notification_command_fault: /etc/keepalived/email_notify.sh # Execute a command when state changes to fault
 
+    required_packages:
+      - haproxy
+      - keepalived
+      - firewalld
+      - socat
+      - cockpit
+      - openssl
+      - s-nail
+      - postfix
+
+    fw_ports:
+      - 1936/tcp
+
+    fw_services:
+      - cockpit
+      - http
+      - https
+
   tasks:
 
     - name: Ensure the needed packages are installed
@@ -74,6 +77,14 @@
         state: enabled
         immediate: true
       loop: "{{ fw_ports }}"
+
+    - name: Open firewall ports for services
+      ansible.posix.firewalld:
+        service: "{{ item }}"
+        permanent: true
+        state: enabled
+        immediate: true
+      loop: "{{ fw_services }}"
 
     - name: Set SELinux Booleans
       ansible.posix.seboolean:

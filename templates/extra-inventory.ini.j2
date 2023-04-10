@@ -1,0 +1,10 @@
+[loadbalancers]
+{% for lbnode in nodes %}
+{{ lbnode.name }} ansible_host={{ lbnode.networking.ip }} keepalived_role={% if lbnode.mode == "primary" %}master{% else %}slave{% endif %}
+
+{% endfor %}
+
+[loadbalancers:vars]
+ansible_ssh_user=root
+ansible_ssh_private_key_file={{ template_dest }}/id_rsa
+ansible_ssh_common_args='-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no'

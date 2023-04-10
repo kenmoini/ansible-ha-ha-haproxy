@@ -1,0 +1,84 @@
+global
+    log         127.0.0.1 local2 debug
+
+    chroot      /var/lib/haproxy
+    pidfile     /var/run/haproxy.pid
+    maxconn     40000
+    user        haproxy
+    group       haproxy
+    stats       socket /run/haproxy/admin.sock mode 660 level admin
+    stats       timeout 10s
+    daemon
+
+defaults
+    mode                    http
+    log                     global
+    option                  httplog
+    option                  dontlognull
+    option                  http-server-close
+    option forwardfor       except 127.0.0.0/8
+    option                  redispatch
+    retries                 3
+    timeout http-request    10s
+    timeout queue           1m
+    timeout connect         4s
+    timeout client          20s
+    timeout server          20s
+    timeout http-keep-alive 10s
+    timeout check           10s
+    maxconn                 30000
+
+listen stats
+    bind    *:1936
+    mode    http
+    log     global
+    maxconn 10
+    stats   enable
+    stats   hide-version
+    stats   refresh         10s
+    stats   show-legends
+    stats   show-node
+    stats   auth            {{ haproxy_stats_admin_user }}:{{ haproxy_stats_admin_pass }}
+    stats   uri             {{ haproxy_stats_path }}
+    timeout connect         4s
+    timeout client          20s
+    timeout server          20s
+
+frontend http
+    bind {{ keepalived_shared_ip }}:80
+    maxconn 30000
+    default_backend http
+
+    # Forces redirection of HTTP to HTTPS traffic unless the request is for a well-known path
+    acl is_well_known path_beg -i /.well-known/
+    redirect scheme https code 301 if !is_well_known !{ ssl_fc }
+    use_backend http if is_well_known
+
+backend http
+    # cloudserver is ARO cluster Application LB IP
+    server      cloudserver {{ primary_server_endpoint }}:80 check
+    # localserver is local SNO instance IP - backup means that if cloudserver is down, localserver will be used
+    server      localserver {{ backup_server_endpoint }}:80 check backup
+
+frontend https
+    bind {{ keepalived_shared_ip }}:443 ssl crt /etc/haproxy/keys/haproxy-bundle.pem
+    mode http
+    option forwardfor
+    #option httpchk HEAD / HTTP/1.0
+    use_backend https
+
+backend https
+    # More robust applications that have consistent healthz endpoints can have better health checks
+    #option httpchk HEAD / HTTP/1.0
+    #http-check   connect
+    #http-check   send meth GET uri /healthz
+    #http-check   expect status 200
+
+    # Clear the stick-table with `echo "clear table https" | sudo socat stdio /var/run/haproxy/admin.sock`
+    # Test the timing with `while [ 0 -eq 0 ]; do (curl -sSLk https://httpd.mco-apps.kemo.labs/ | egrep -oi 'This is the ..... server') && sleep 0.5; done`
+    stick-table type ip size 2 nopurge
+    stick on dst
+    server       cloudserver {{ primary_server_endpoint }}:80 check on-error mark-down observe layer7 error-limit 1
+    server       localserver {{ backup_server_endpoint }}:80 check backup
+    http-request add-header X-Forwarded-Proto https if { ssl_fc }
+    http-request add-header X-Forwarded-Port 443 if { ssl_fc }
