@@ -16,8 +16,8 @@ spec:
     spec:
       containers:
         - name: dotnet
-          image: jfrog.kemo.labs/docker-remote/bencuk/dotnet-demoapp:latest
-          #image: docker.io/bencuk/dotnet-demoapp
+          image: docker.io/bencuk/dotnet-demoapp
+          #image: jfrog.kemo.labs/docker-remote/bencuk/dotnet-demoapp:latest
           #image: registry.access.redhat.com/rhscl/httpd-24-rhel7:2.4-212.1679308152
           ports:
             - containerPort: 5000
