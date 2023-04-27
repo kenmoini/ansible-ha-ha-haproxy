@@ -28,6 +28,15 @@ spec:
             requests:
               cpu: 150m
               memory: 100Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            seccompProfile:
+              type: RuntimeDefault
+            capabilities:
+              drop:
+              - ALL
+      securityContext:
+        runAsNonRoot: true
 ---
 
 apiVersion: apps/v1
@@ -64,3 +73,12 @@ spec:
           volumeMounts:
             - name: custom-page
               mountPath: /var/www/html/
+          securityContext:
+            allowPrivilegeEscalation: false
+            seccompProfile:
+              type: RuntimeDefault
+            capabilities:
+              drop:
+              - ALL
+      securityContext:
+        runAsNonRoot: true
