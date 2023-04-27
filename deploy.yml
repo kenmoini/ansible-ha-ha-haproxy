@@ -5,7 +5,7 @@
   become: true
   vars:
 
-    primary_server_endpoint: 192.168.70.81
+    primary_server_endpoint: 192.168.70.73
     backup_server_endpoint: 192.168.42.34
 
     keepalived_shared_ip: "192.168.42.37"
