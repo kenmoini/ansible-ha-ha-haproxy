@@ -40,12 +40,13 @@ listen stats
     stats   show-node
     stats   auth            {{ haproxy_stats_admin_user }}:{{ haproxy_stats_admin_pass }}
     stats   uri             {{ haproxy_stats_path }}
+    stats   realm           HAProxy\ Statistics
     timeout connect         4s
     timeout client          20s
     timeout server          20s
 
 frontend http
-    bind *:80
+    bind {{ keepalived_shared_ip }}:80
     maxconn 30000
     default_backend http
 
@@ -61,7 +62,7 @@ backend http
     server      localserver {{ backup_server_endpoint }}:80 check backup
 
 frontend https
-    bind *:443 ssl crt /etc/haproxy/keys/haproxy-bundle.pem
+    bind {{ keepalived_shared_ip }}:443 ssl crt /etc/haproxy/keys/haproxy-bundle.pem
     mode http
     option forwardfor
     #option httpchk HEAD / HTTP/1.0
